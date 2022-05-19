@@ -18,15 +18,6 @@
 #define DEVICE_DATA_LENGTH 32
 #define MAX_NODES 16
 
-
-
-
-
-
-
-
-
-
 // This structure stores data about the mapping, such as the number of inputs
 // or the total number of mux devices. Not all of these properties are required
 // in all cases.
@@ -52,10 +43,16 @@ struct deviceMap {
 struct deviceMapping {
 	struct deviceMap* deviceMapList;
 	int numDevices;
-}
+	int maxDevices;
+};
 
 struct nodeMapping {
 	int device;
 	int common;
 };
+
+
+int readMapData(struct mapdata* outMapdata, FILE * mapfile);
+int readDeviceMapping(struct deviceMapping *outDeviceMapping, FILE * mapfile);
+struct deviceMapping createDeviceMapping(int maxDevices);
 

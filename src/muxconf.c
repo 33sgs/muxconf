@@ -51,7 +51,7 @@ int mapNodes(struct nodeMapping **outputList, FILE * mapfile){
 	return numNodes;
 
 }
-
+/*
 int mapParts (struct partMapping **outputList, FILE * mapfile){
 	int numParts = 0;
 	struct partMapping *partList = malloc(MAX_PARTS * sizeof(struct partMapping));
@@ -93,6 +93,7 @@ int mapParts (struct partMapping **outputList, FILE * mapfile){
 	return numParts;
 
 }
+*/
 
 // This function provides the decoding for setting the switches on the MAX14661
 // It returns the bit to set
@@ -122,12 +123,19 @@ void writeConfigDecimal(int (*config)[DEVICE_DATA_LENGTH], FILE * outputFile){
 	}
 }
 
+
+struct deviceMapping createDeviceMapping(int maxDevices){
+	struct deviceMapping newDeviceMapping;
+	newDeviceMapping.deviceMapList = malloc(sizeof(struct deviceMap) * maxDevices);
+	newDeviceMapping.maxDevices = maxDevices;
+	return newDeviceMapping;
+}
+
 int readMapData(struct mapdata* outMapdata, FILE * mapfile){
 	char * token;
 	int foundEnd = -1;
 	char mapline[MAX_NETLIST_LINE];
 	while(fgets(mapline, MAX_NETLIST_LINE, mapfile) != NULL){
-		fprintf(stderr, "\n-----------\n%s\n------------\n", mapline);
 		if(mapline[0] == '.' || mapline[0] == '*') {
 			continue;
 		}
@@ -163,6 +171,37 @@ int readMapData(struct mapdata* outMapdata, FILE * mapfile){
 	return foundEnd;
 }
 
+int readDeviceMapping(struct deviceMapping *outDeviceMapping, FILE * mapfile){
+	char * token;
+	int count = 0;
+	int portCounter;
+	char mapline[MAX_NETLIST_LINE];
+	while(count < outDeviceMapping->maxDevices){
+		fgets(mapline, MAX_NETLIST_LINE, mapfile);
+		if(mapline == NULL) {
+			printf("got null line\n");
+			break;
+		} else if(!strcmp(mapline, "END devicemapping")) {
+			break;
+		} else {
+			token = strtok(mapline, mapfileDelim);
+			strcpy(outDeviceMapping->deviceMapList[count].name, token);
+
+			token = strtok(NULL, mapfileDelim);
+			outDeviceMapping->deviceMapList[count].ports = atoi(token);
+			portCounter = 0;
+			while(portCounter < outDeviceMapping->deviceMapList[count].ports) {
+				token = strtok(NULL, mapfileDelim);
+				outDeviceMapping->deviceMapList[count].portInput[portCounter++] = atoi(token);
+			}
+			count++;
+		}
+
+
+	}
+	outDeviceMapping->numDevices = count;
+	return 0;
+}
 
 int main(int argc, char** argv){
 	FILE * outputFile;
@@ -170,7 +209,7 @@ int main(int argc, char** argv){
 	FILE * netlist;
 	char line[MAX_NETLIST_LINE];
 	struct mapdata mainMapData;
-
+	struct deviceMapping mainDeviceMapping;
 	int ret;
 	//////
 	// Open the files
@@ -199,21 +238,23 @@ int main(int argc, char** argv){
 	//////
 	// Get mapdata from mapfile and store it
 	//////
+
+	// Seek start of file
+	ret = fseek(mapfile, 0, SEEK_SET);
+	if(ret){
+		perror("Failed to seek mapfile");
+		exit(1);
+	}
 	while(fgets(line, MAX_NETLIST_LINE, mapfile) != NULL){
 		if(line[0] == '.' || line[0] == '*')
 			continue;
-		else if(!strcmp(line, "BEGIN devicemapping\n")) {
-			ret = readDeviceMapping(&
-		}
-		else if(!strcmp(line, "BEGIN nodemapping\n")) {
-			//numNodes = mapNodes(&nodeList, mapfile);
-		}
 		else if(!strcmp(line, "BEGIN mapdata\n")) {
 			ret = readMapData(&mainMapData, mapfile);
 			if(ret == -1){
 				fprintf(stderr, "Failed to read mapdata\n");
 				exit(1);
 			}
+			break;
 		}
 	}
 
@@ -227,13 +268,35 @@ int main(int argc, char** argv){
 	printf("inputs_per_col = %d\n", mainMapData.inputs_per_col);
 #endif
 
-	return 0;
 	//////
 	// Get devicemapping and store it as struct
 	//////
 
+	// Initialize deviceMapping
+	mainDeviceMapping = createDeviceMapping(mainMapData.device_count);
+
+	// Seek start of file
+	ret = fseek(mapfile, 0, SEEK_SET);
+	if(ret){
+		perror("Failed to seek mapfile");
+		exit(1);
+	}
+	while(fgets(line, MAX_NETLIST_LINE, mapfile) != NULL){
+		if(line[0] == '.' || line[0] == '*')
+			continue;
+		else if(!strcmp(line, "BEGIN devicemapping\n")) {
+			ret = readDeviceMapping(&mainDeviceMapping, mapfile);
+			if(ret == -1){
+				fprintf(stderr, "Failed to read deviceMapping\n");
+				exit(1);
+			}
+			break;
+		}
+	}
+
+	return 0;
 	//////
-	// Get node mapping and store it as struct
+	// Get node mapping and store it as array
 	//////
 
 	//////
@@ -256,6 +319,7 @@ int main(int argc, char** argv){
 	// Free memory
 	//////
 
+	/*
 	const char t[2] = " ";
 	char *token;
 
@@ -381,5 +445,6 @@ int main(int argc, char** argv){
 	fprintf(stdout, "\nFinished writting config file\n");
 
 	return 0;
+	*/
 }
 
