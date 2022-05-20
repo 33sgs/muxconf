@@ -46,13 +46,34 @@ struct deviceMapping {
 	int maxDevices;
 };
 
-struct nodeMapping {
-	int device;
-	int common;
+
+
+// Maps a matrix input to a column and to the mux input pin
+struct inputMapping {
+	int * inputToCol;
+	int * inputPin;
+	int maxInputs;
 };
 
+// Maps a matrix node to a row
+struct nodeMapping {
+	int * nodeToRow;
+	int * nodeCommon;
+	int maxNodes;
+};
+
+struct muxMapping {
+	int ** muxMap;
+	int numRows;
+	int numCols;
+};
 
 int readMapData(struct mapdata* outMapdata, FILE * mapfile);
 int readDeviceMapping(struct deviceMapping *outDeviceMapping, FILE * mapfile);
-struct deviceMapping createDeviceMapping(int maxDevices);
+int readInputMapping(struct inputMapping *outInputMapping, FILE * mapfile);
+int readNodeMapping(struct nodeMapping *outNodeMapping, FILE * mapfile);
+struct deviceMapping initDeviceMapping(int maxDevices);
+struct inputMapping initInputMapping(int maxInputs);
+struct nodeMapping initNodeMapping(int maxNodes);
+struct muxMapping initMuxMapping(int numRows, int numCols);
 
